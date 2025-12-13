@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,64 +22,54 @@ class GameEvaluator:
             self.game = chess.pgn.read_game(pgn)
         self.target = target
 
-    def detect_blunders(self) -> list[tuple[int, int, int]]:
+    def move_analyzer(self):
         if self.game is None:
             raise ValueError("Input game is not set")
 
         board = self.game.board()
 
-        blunders: list[tuple[int, int, int]] = [] # [move_number, ply, harm]
+        data: list[dict[str, object]] = []
 
         with self.evaluator(engine_path=self.engine_path, depth=self.depth) as ev:
             for move in self.game.mainline_moves():
                 mover = board.turn
-                cp_before = ev.eval_cp(board)
-                board.push(move)
-                cp_after = ev.eval_cp(board)
 
-                if mover != self.target:
-                    continue
-
-                delta = cp_after - cp_before
-
-                harm = -delta if mover == chess.WHITE else delta
-
-                if harm >= self.blunders_threshold_cp:
-                    blunders.append((int(board.fullmove_number), int(board.ply()), int(harm)))
-
-        return blunders
-
-    def detect_missed_moves(self) -> list[tuple[int, int, int]]:
-        if self.game is None:
-            raise ValueError("Input game is not correct")
-
-        board = self.game.board()
-
-        missed_moves: list[tuple[int, int, int]] = [] # [move_number, ply, harm]
-
-        with self.evaluator(engine_path=self.engine_path, depth=self.depth) as ev:
-            for move in self.game.mainline_moves():
-                mover = board.turn
                 if mover == self.target:
                     best_move = ev.get_best_move(board)
+                    best_move_uci = best_move.uci()
                     board.push(best_move)
                     cp_best_move = ev.eval_cp(board)
-
                     board.pop()
+
+                    cp_before = ev.eval_cp(board)
                     board.push(move)
-                    cp_chosen_move = ev.eval_cp(board)
+                    cp_after = ev.eval_cp(board)
+                    delta_player = cp_after - cp_before
+                    delta_best_move = cp_best_move - cp_before
 
-                    delta = cp_best_move - cp_chosen_move
-                    missed_move = delta if mover == chess.WHITE else -delta
-
-                    if missed_move >= self.missed_moves_threshold_cp:
-                        missed_moves.append((int(board.fullmove_number), int(board.ply()), int(missed_move)))
-
+                    if mover == chess.BLACK:
+                        delta_player = -delta_player
+                        delta_best_move = -delta_best_move
                 else:
+                    delta_player = math.nan
+                    delta_best_move = math.nan
                     board.push(move)
 
-        return missed_moves
-
+                data.append(
+                        {
+                            "ply": board.ply(),
+                            "fullmove": board.fullmove_number,
+                            "mover": "W" if mover == chess.WHITE else "B",
+                            "uci": move.uci(),
+                            "cp_before": int(cp_before),
+                            "cp_after": int(cp_after),
+                            "delta_player": delta_player,
+                            "best_move_uci": best_move_uci,
+                            "cp_best_move": cp_best_move,
+                            "delta_best_move": delta_best_move,
+                        }
+                    )
+        return data
 
 
 if __name__ == "__main__":
@@ -87,6 +78,6 @@ if __name__ == "__main__":
 
     ge = GameEvaluator()
     ge.set_game(pgn_path_blunder, chess.WHITE)
-    ge.detect_blunders()
+    ge.move_analyzer()
     ge.set_game(pgn_path_missed, chess.WHITE)
-    ge.detect_missed_moves()
+    ge.move_analyzer()
