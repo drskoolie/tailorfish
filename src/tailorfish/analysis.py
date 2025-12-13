@@ -3,7 +3,6 @@ from pathlib import Path
 import chess.pgn
 
 from tailorfish.eval import StockfishEvaluator
-from tailorfish.student import MistakeProfile, MistakeType
 
 pgn_path = Path("tests/fixtures/blunder.pgn")
 engine_path = Path("/usr/games/stockfish")
@@ -16,11 +15,10 @@ def detect_blunders(
         eval: StockfishEvaluator,
         target: chess.Color,
         blunder_cp: int = 200,
-        ) -> list[MistakeProfile]:
+        ) -> list:
     board = game.board()
 
-    harms: list[int] = []
-    move_numbers: list[int] = []
+    blunders: list[int, int, int] = [] # [move_number, ply, harm]
 
     with eval(engine_path=engine_path, depth=10) as ev:
         for move in game.mainline_moves():
@@ -37,17 +35,8 @@ def detect_blunders(
             harm = -delta if mover == chess.WHITE else delta
 
             if harm >= blunder_cp:
-                harms.append(int(harm))
-                move_numbers.append(int(board.fullmove_number))
+                blunders.append([int(board.fullmove_number), int(board.ply()), int(harm)])
+
+    return blunders
 
 detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
-
-def analyze_pgn(path: Path) -> list[MistakeProfile]:
-    return [
-            MistakeProfile(
-                kind=MistakeType.BLUNDER,
-                frequency=1,
-                avg_centipawn_loss=300.0,
-                typical_move_number = 3,
-                )
-            ]
