@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import chess.pgn
+import polars as pl
 
 from tailorfish.eval import StockfishEvaluator
 
@@ -22,13 +23,13 @@ class GameEvaluator:
             self.game = chess.pgn.read_game(pgn)
         self.target = target
 
-    def move_analyzer(self):
+    def move_analyzer(self) -> pl.DataFrame:
         if self.game is None:
             raise ValueError("Input game is not set")
 
         board = self.game.board()
 
-        data: list[dict[str, object]] = []
+        rows: list[dict[str, object]] = []
 
         with self.evaluator(engine_path=self.engine_path, depth=self.depth) as ev:
             for move in self.game.mainline_moves():
@@ -38,6 +39,7 @@ class GameEvaluator:
                 if mover == self.target:
                     best_move = ev.get_best_move(board)
                     best_move_uci = best_move.uci()
+                    best_move_san = board.san(best_move)
                     board.push(best_move)
                     cp_best_move = ev.eval_cp(board)
                     board.pop()
@@ -56,7 +58,7 @@ class GameEvaluator:
                     delta_best_move = math.nan
                     board.push(move)
 
-                data.append(
+                rows.append(
                         {
                             "ply": board.ply(),
                             "fullmove": board.fullmove_number,
@@ -67,11 +69,12 @@ class GameEvaluator:
                             "cp_after": int(cp_after),
                             "delta_player": delta_player,
                             "best_move_uci": best_move_uci,
+                            "best_move_san": best_move_san,
                             "cp_best_move": cp_best_move,
                             "delta_best_move": delta_best_move,
                         }
                     )
-        return data
+        return pl.DataFrame(rows)
 
 
 if __name__ == "__main__":
@@ -80,6 +83,6 @@ if __name__ == "__main__":
 
     ge = GameEvaluator()
     ge.set_game(pgn_path_blunder, chess.WHITE)
-    ge.move_analyzer()
+    df_blunder = ge.move_analyzer()
     ge.set_game(pgn_path_missed, chess.WHITE)
-    ge.move_analyzer()
+    df_missed = ge.move_analyzer()
