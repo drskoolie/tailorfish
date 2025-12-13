@@ -1,4 +1,3 @@
-import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -54,8 +53,8 @@ class GameEvaluator:
                         delta_player = -delta_player
                         delta_best_move = -delta_best_move
                 else:
-                    delta_player = math.nan
-                    delta_best_move = math.nan
+                    delta_player = None
+                    delta_best_move = None
                     board.push(move)
 
                 rows.append(

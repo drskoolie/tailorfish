@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import chess
+import polars as pl
 
 from tailorfish.analysis import GameEvaluator
 
@@ -11,9 +12,9 @@ def test_detect_blunder_true() -> None:
     ge = GameEvaluator()
     ge.set_game(pgn_path, chess.WHITE)
 
-    blunders = ge.detect_blunders()
+    df = ge.move_analyzer()
 
-    assert len(blunders) == 1
+    assert df["delta_player"][4] <= -500
 
 def test_detect_blunder_false() -> None:
     pgn_path = Path("tests/fixtures/no_blunder.pgn")
@@ -21,9 +22,16 @@ def test_detect_blunder_false() -> None:
     ge = GameEvaluator()
     ge.set_game(pgn_path, chess.WHITE)
 
-    blunders = ge.detect_blunders()
+    df = ge.move_analyzer()
 
-    assert len(blunders) == 0
+    assert (
+            df
+            .filter(pl.col("delta_player").is_not_null())
+            .select(pl.col("delta_player").min())
+            .item()
+            >= -500
+            )
+
 
 def test_detect_missed_move_true() -> None:
     pgn_path = Path("tests/fixtures/missed_move.pgn")
@@ -31,9 +39,9 @@ def test_detect_missed_move_true() -> None:
     ge = GameEvaluator()
     ge.set_game(pgn_path, chess.WHITE)
 
-    missed_moves = ge.detect_missed_moves()
+    df = ge.move_analyzer()
 
-    assert len(missed_moves) == 1
+    assert df["delta_best_move"][6] >= 10000
 
 
 def test_detect_missed_move_false() -> None:
@@ -42,6 +50,12 @@ def test_detect_missed_move_false() -> None:
     ge = GameEvaluator()
     ge.set_game(pgn_path, chess.WHITE)
 
-    missed_moves = ge.detect_missed_moves()
+    df = ge.move_analyzer()
 
-    assert len(missed_moves) == 0
+    assert (
+            df
+            .filter(pl.col("delta_best_move").is_not_null())
+            .select(pl.col("delta_best_move").min())
+            .item()
+            <= 500
+            )
