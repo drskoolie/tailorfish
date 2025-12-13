@@ -2,8 +2,8 @@ from pathlib import Path
 
 import chess
 
-from tailorfish.eval import StockfishEvaluator
 from tailorfish.analysis import detect_blunders
+from tailorfish.eval import StockfishEvaluator
 
 
 def test_detects_blunder_from_pgn() -> None:
