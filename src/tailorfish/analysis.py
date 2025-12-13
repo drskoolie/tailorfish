@@ -34,6 +34,7 @@ class GameEvaluator:
             for move in self.game.mainline_moves():
                 mover = board.turn
 
+                san = board.san(move)
                 if mover == self.target:
                     best_move = ev.get_best_move(board)
                     best_move_uci = best_move.uci()
@@ -45,7 +46,7 @@ class GameEvaluator:
                     board.push(move)
                     cp_after = ev.eval_cp(board)
                     delta_player = cp_after - cp_before
-                    delta_best_move = cp_best_move - cp_before
+                    delta_best_move = cp_best_move - cp_after
 
                     if mover == chess.BLACK:
                         delta_player = -delta_player
@@ -61,6 +62,7 @@ class GameEvaluator:
                             "fullmove": board.fullmove_number,
                             "mover": "W" if mover == chess.WHITE else "B",
                             "uci": move.uci(),
+                            "san": san,
                             "cp_before": int(cp_before),
                             "cp_after": int(cp_after),
                             "delta_player": delta_player,
