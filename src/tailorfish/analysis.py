@@ -1,23 +1,21 @@
 from pathlib import Path
 
-import chess.engine
 import chess.pgn
 
 from tailorfish.student import MistakeProfile, MistakeType
+from tailorfish.eval import StockfishEvaluator
 
-path = Path("tests/fixtures/blunder.pgn")
-with open(path) as pgn:
+pgn_path = Path("tests/fixtures/blunder.pgn")
+engine_path = Path("/usr/games/stockfish")
+
+with open(pgn_path) as pgn:
     game = chess.pgn.read_game(pgn)
 
 board = game.board()
-
-engine = chess.engine.SimpleEngine.popen_uci("/usr/games/stockfish")
-
-info = engine.analyse(board, chess.engine.Limit(depth=10))
-
-score = info["score"].pov(board.turn)
-cp = score.score(mate_score=10000)
-
+with StockfishEvaluator(engine_path=engine_path, depth=10) as ev:
+    cp = ev.eval_cp(board)
+    print(cp)
+    print(board)
 
 def analyze_pgn(path: Path) -> list[MistakeProfile]:
     return [
