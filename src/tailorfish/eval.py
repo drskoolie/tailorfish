@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from types import TracebackType
 
 import chess
 import chess.engine
@@ -19,7 +20,14 @@ class StockfishEvaluator:
     def __enter__(self) -> "StockfishEvaluator":
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        _exc: BaseException | None,
+        _tb: TracebackType | None,
+    ) -> None:
+
         self.close()
 
     def eval_cp(self, board: chess.Board) -> int:
