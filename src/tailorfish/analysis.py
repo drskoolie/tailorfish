@@ -2,6 +2,7 @@ from pathlib import Path
 
 from tailorfish.student import MistakeProfile, MistakeType
 
+
 def analyze_pgn(path: Path) -> list[MistakeProfile]:
     return [
             MistakeProfile(
