@@ -10,7 +10,7 @@ def detect_blunders(
         game: chess.pgn.Game | None,
         eval: type[StockfishEvaluator],
         target: chess.Color,
-        blunder_cp: int = 200,
+        loss_threshold_cp: int = 200,
         ) -> list[tuple[int, int, int]]:
 
     if game is None:
@@ -34,7 +34,7 @@ def detect_blunders(
 
             harm = -delta if mover == chess.WHITE else delta
 
-            if harm >= blunder_cp:
+            if harm >= loss_threshold_cp:
                 blunders.append((int(board.fullmove_number), int(board.ply()), int(harm)))
 
     return blunders
@@ -43,16 +43,51 @@ def detect_missed_moves(
         game: chess.pgn.Game | None,
         eval: type[StockfishEvaluator],
         target: chess.Color,
-        blunder_cp: int = 200,
+        loss_threshold_cp: int = 200,
         ) -> list[tuple[int, int, int]]:
 
-    return [(0, 0, 0)]
+    if game is None:
+        raise ValueError("Input game is not correct")
+
+    board = game.board()
+
+    missed_moves: list[tuple[int, int, int]] = [] # [move_number, ply, harm]
+
+    with eval(engine_path=engine_path, depth=10) as ev:
+        for move in game.mainline_moves():
+            mover = board.turn
+            if mover == target:
+                best_move = ev.get_best_move(board)
+                board.push(best_move)
+                cp_best_move = ev.eval_cp(board)
+
+                board.pop()
+                board.push(move)
+                cp_chosen_move = ev.eval_cp(board)
+
+                delta = cp_best_move - cp_chosen_move
+                missed_move = delta if mover == chess.WHITE else -delta
+
+                if missed_move >= loss_threshold_cp:
+                    missed_moves.append((int(board.fullmove_number), int(board.ply()), int(missed_move)))
+
+            else:
+                board.push(move)
+
+
+    return missed_moves
+
 
 
 if __name__ == "__main__":
-    pgn_path = Path("tests/fixtures/blunder.pgn")
+    pgn_path_blunder = Path("tests/fixtures/blunder.pgn")
+    pgn_path_missed = Path("tests/fixtures/missed_move.pgn")
 
-    with open(pgn_path) as pgn:
-        game = chess.pgn.read_game(pgn)
+    with open(pgn_path_blunder) as pgn:
+        game_blunder = chess.pgn.read_game(pgn)
 
-    blunders = detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
+    with open(pgn_path_missed) as pgn:
+        game_missed = chess.pgn.read_game(pgn)
+
+    blunders = detect_blunders(game=game_blunder, eval= StockfishEvaluator, target=chess.WHITE)
+    missed_moves = detect_missed_moves(game=game_missed, eval= StockfishEvaluator, target=chess.WHITE)

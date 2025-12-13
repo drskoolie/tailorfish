@@ -37,3 +37,13 @@ class StockfishEvaluator:
 
         assert cp is not None
         return cp
+
+    def get_best_move(self, board: chess.Board) -> chess.Move:
+        info = self._engine.analyse(board, chess.engine.Limit(depth=self.depth))
+        pv = info.get("pv")
+        if not pv:
+            raise RuntimeError("Stockfish returned no PV (no best move).")
+
+        return pv[0]
+
+
