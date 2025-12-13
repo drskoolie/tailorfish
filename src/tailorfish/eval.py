@@ -37,4 +37,3 @@ class StockfishEvaluator:
 
         assert cp is not None
         return cp
-    
