@@ -39,6 +39,15 @@ def detect_blunders(
 
     return blunders
 
+def detect_missed_moves(
+        game: chess.pgn.Game | None,
+        eval: type[StockfishEvaluator],
+        target: chess.Color,
+        blunder_cp: int = 200,
+        ) -> list[tuple[int, int, int]]:
+
+    return [(0, 0, 0)]
+
 
 if __name__ == "__main__":
     pgn_path = Path("tests/fixtures/blunder.pgn")
@@ -46,4 +55,4 @@ if __name__ == "__main__":
     with open(pgn_path) as pgn:
         game = chess.pgn.read_game(pgn)
 
-    detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
+    blunders = detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
