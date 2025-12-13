@@ -4,21 +4,15 @@ import chess.pgn
 
 from tailorfish.eval import StockfishEvaluator
 
-pgn_path = Path("tests/fixtures/blunder.pgn")
-engine_path = Path("/usr/games/stockfish")
-
-with open(pgn_path) as pgn:
-    game = chess.pgn.read_game(pgn)
-
 def detect_blunders(
         game: chess.pgn.Game,
-        eval: StockfishEvaluator,
+        eval: type[StockfishEvaluator],
         target: chess.Color,
         blunder_cp: int = 200,
-        ) -> list:
+        ) -> list[tuple[int, int, int]]:
     board = game.board()
 
-    blunders: list[int, int, int] = [] # [move_number, ply, harm]
+    blunders: list[tuple[int, int, int]] = [] # [move_number, ply, harm]
 
     with eval(engine_path=engine_path, depth=10) as ev:
         for move in game.mainline_moves():
@@ -35,8 +29,16 @@ def detect_blunders(
             harm = -delta if mover == chess.WHITE else delta
 
             if harm >= blunder_cp:
-                blunders.append([int(board.fullmove_number), int(board.ply()), int(harm)])
+                blunders.append((int(board.fullmove_number), int(board.ply()), int(harm)))
 
     return blunders
 
-detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
+
+if __name__ == "__main__":
+    pgn_path = Path("tests/fixtures/blunder.pgn")
+    engine_path = Path("/usr/games/stockfish")
+
+    with open(pgn_path) as pgn:
+        game = chess.pgn.read_game(pgn)
+
+    detect_blunders(game=game, eval= StockfishEvaluator, target=chess.WHITE)
