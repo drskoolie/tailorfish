@@ -30,9 +30,9 @@ class StockfishEvaluator:
 
         self.close()
 
-    def eval_cp(self, board: chess.Board) -> int:
+    def eval_cp(self, board: chess.Board, pov: chess.Color = chess.WHITE) -> int:
         info = self._engine.analyse(board, chess.engine.Limit(depth=self.depth))
-        score = info["score"].pov(board.turn)
+        score = info["score"].pov(pov)
         cp = score.score(mate_score=10000)
 
         assert cp is not None

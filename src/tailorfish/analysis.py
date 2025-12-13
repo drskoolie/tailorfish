@@ -13,6 +13,13 @@ with open(pgn_path) as pgn:
 
 board = game.board()
 with StockfishEvaluator(engine_path=engine_path, depth=10) as ev:
+    for move in game.mainline_moves():
+        import ipdb; ipdb.set_trace(context = 10) 
+        cp = ev.eval_cp(board)
+        print(cp)
+        print(board)
+        board.push(move)
+
     cp = ev.eval_cp(board)
     print(cp)
     print(board)
