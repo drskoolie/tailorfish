@@ -2,8 +2,8 @@ from pathlib import Path
 
 import chess.pgn
 
-from tailorfish.student import MistakeProfile, MistakeType
 from tailorfish.eval import StockfishEvaluator
+from tailorfish.student import MistakeProfile, MistakeType
 
 pgn_path = Path("tests/fixtures/blunder.pgn")
 engine_path = Path("/usr/games/stockfish")
