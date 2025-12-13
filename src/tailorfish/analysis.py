@@ -4,12 +4,18 @@ import chess.pgn
 
 from tailorfish.eval import StockfishEvaluator
 
+engine_path = Path("/usr/games/stockfish")
+
 def detect_blunders(
-        game: chess.pgn.Game,
+        game: chess.pgn.Game | None,
         eval: type[StockfishEvaluator],
         target: chess.Color,
         blunder_cp: int = 200,
         ) -> list[tuple[int, int, int]]:
+
+    if game is None:
+        raise ValueError("Input game is not correct")
+
     board = game.board()
 
     blunders: list[tuple[int, int, int]] = [] # [move_number, ply, harm]
@@ -36,7 +42,6 @@ def detect_blunders(
 
 if __name__ == "__main__":
     pgn_path = Path("tests/fixtures/blunder.pgn")
-    engine_path = Path("/usr/games/stockfish")
 
     with open(pgn_path) as pgn:
         game = chess.pgn.read_game(pgn)
