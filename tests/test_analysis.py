@@ -10,7 +10,7 @@ def test_detect_blunder_true() -> None:
     pgn_path = Path("tests/fixtures/blunder.pgn")
 
     ge = GameEvaluator()
-    ge.set_game(pgn_path, chess.WHITE)
+    ge.load_game_from_path(pgn_path, chess.WHITE)
 
     df = ge.move_analyzer()
 
@@ -20,7 +20,7 @@ def test_detect_blunder_false() -> None:
     pgn_path = Path("tests/fixtures/no_blunder.pgn")
 
     ge = GameEvaluator()
-    ge.set_game(pgn_path, chess.WHITE)
+    ge.load_game_from_path(pgn_path, chess.WHITE)
 
     df = ge.move_analyzer()
 
@@ -37,7 +37,7 @@ def test_detect_missed_move_true() -> None:
     pgn_path = Path("tests/fixtures/missed_move.pgn")
 
     ge = GameEvaluator()
-    ge.set_game(pgn_path, chess.WHITE)
+    ge.load_game_from_path(pgn_path, chess.WHITE)
 
     df = ge.move_analyzer()
 
@@ -48,7 +48,7 @@ def test_detect_missed_move_false() -> None:
     pgn_path = Path("tests/fixtures/no_blunder.pgn")
 
     ge = GameEvaluator()
-    ge.set_game(pgn_path, chess.WHITE)
+    ge.load_game_from_path(pgn_path, chess.WHITE)
 
     df = ge.move_analyzer()
 

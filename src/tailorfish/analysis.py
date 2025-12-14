@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 
 import chess.pgn
@@ -6,6 +7,21 @@ import polars as pl
 
 from tailorfish.eval import StockfishEvaluator
 
+
+def load_games_into_ram(pgn_path: Path) -> list[dict[str, object]]:
+    text = pgn_path.read_text(encoding="utf-8")
+
+    games: list[dict[str, object]] = []
+    buf = StringIO(text)
+
+    while (game := chess.pgn.read_game(buf)) is not None:
+        target = chess.WHITE if game.headers["White"] == "drskoolie" else chess.BLACK
+        games.append({
+            "game": game,
+            "target": target,
+            })
+
+    return games
 
 @dataclass
 class GameEvaluator:
@@ -17,9 +33,14 @@ class GameEvaluator:
         self.blunders_threshold_cp = 200
         self.missed_moves_threshold_cp = 200
     
-    def set_game(self, pgn_path: Path, target: chess.Color) -> None:
+
+    def load_game_from_path(self, pgn_path: Path, target: chess.Color) -> None:
         with open(pgn_path) as pgn:
             self.game = chess.pgn.read_game(pgn)
+        self.target = target
+
+    def load_game_directly(self, game: chess.pgn.Game, target: chess.Color) -> None:
+        self.game = game
         self.target = target
 
     def move_analyzer(self) -> pl.DataFrame:
@@ -55,6 +76,12 @@ class GameEvaluator:
                 else:
                     delta_player = None
                     delta_best_move = None
+                    best_move = None
+                    best_move_uci = None
+                    best_move_san = None
+                    cp_best_move = None
+                    cp_before = None
+                    cp_after = None
                     board.push(move)
 
                 rows.append(
@@ -64,8 +91,8 @@ class GameEvaluator:
                             "mover": "W" if mover == chess.WHITE else "B",
                             "uci": move.uci(),
                             "san": san,
-                            "cp_before": int(cp_before),
-                            "cp_after": int(cp_after),
+                            "cp_before": cp_before,
+                            "cp_after": cp_after,
                             "delta_player": delta_player,
                             "best_move_uci": best_move_uci,
                             "best_move_san": best_move_san,
@@ -77,11 +104,13 @@ class GameEvaluator:
 
 
 if __name__ == "__main__":
-    pgn_path_blunder = Path("tests/fixtures/blunder.pgn")
-    pgn_path_missed = Path("tests/fixtures/missed_move.pgn")
+    pgn_path_drskoolie = Path("data/raw/lichess_drskoolie_2025-12-14.pgn")
+    games = load_games_into_ram(pgn_path_drskoolie)
 
     ge = GameEvaluator()
-    ge.set_game(pgn_path_blunder, chess.WHITE)
-    df_blunder = ge.move_analyzer()
-    ge.set_game(pgn_path_missed, chess.WHITE)
-    df_missed = ge.move_analyzer()
+    ge.load_game_directly(games[0]["game"], games[0]["target"])
+    df = ge.move_analyzer()
+    print(
+            df[["san", "delta_player"]]
+    .filter(df["delta_player"].is_not_null())
+    )
