@@ -34,6 +34,7 @@ class GameEvaluator:
         self.depth = 10
         self.blunders_threshold_cp = 200
         self.missed_moves_threshold_cp = 200
+        self.game: chess.pgn.Game | None = None
     
 
     def load_game_from_path(self, pgn_path: Path, target: chess.Color) -> None:
