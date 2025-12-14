@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
+from typing import TypedDict
 
 import chess.pgn
 import polars as pl
@@ -8,18 +9,19 @@ import polars as pl
 from tailorfish.eval import StockfishEvaluator
 
 
-def load_games_into_ram(pgn_path: Path) -> list[dict[str, object]]:
+class GameRecord(TypedDict):
+    game: chess.pgn.Game
+    target: chess.Color
+
+def load_games_into_ram(pgn_path: Path) -> list[GameRecord]:
     text = pgn_path.read_text(encoding="utf-8")
 
-    games: list[dict[str, object]] = []
+    games: list[GameRecord] = []
     buf = StringIO(text)
 
     while (game := chess.pgn.read_game(buf)) is not None:
         target = chess.WHITE if game.headers["White"] == "drskoolie" else chess.BLACK
-        games.append({
-            "game": game,
-            "target": target,
-            })
+        games.append({"game": game, "target": target})
 
     return games
 
@@ -110,7 +112,3 @@ if __name__ == "__main__":
     ge = GameEvaluator()
     ge.load_game_directly(games[0]["game"], games[0]["target"])
     df = ge.move_analyzer()
-    print(
-            df[["san", "delta_player"]]
-    .filter(df["delta_player"].is_not_null())
-    )
