@@ -4,41 +4,36 @@ from textual.binding import Binding
 from textual.widgets import Static
 
 
-LIGHT_BG = "red"      # try "grey23" later
-DARK_BG  = "gray10"
 
-WHITE_FG = "yellow"
-BLACK_FG = "bright_black"
+WHITE_FG = "#87FFFF"
+BLACK_FG = "#AF0000"
 
 def board_to_ascii(board: chess.Board) -> str:
     lines: list[str] = []
-    lines.append("    a  b  c  d  e  f  g  h")
-    lines.append("    ----------------------")
+    lines.append("   a b c d e f g h")
+    lines.append("   ---------------")
 
     for rank in range(7, -1, -1):
-        row = [f"{rank+1}| "]
+        row = [f"{rank+1}|"]
         for file in range(8):
             sq = chess.square(file, rank)
             piece = board.piece_at(sq)
 
-            # a1 is dark -> (file+rank) % 2 == 0 gives dark on a1
-            bg = DARK_BG if (file + rank) % 2 == 0 else LIGHT_BG
-
             if piece is None:
                 # two spaces so the square has width
-                row.append(f"[on {bg}]   [/]")
+                row.append(" ○")
             else:
                 sym = piece.symbol()
                 fg = WHITE_FG if sym.isupper() else BLACK_FG
                 # leading space makes alignment look like a cell
-                row.append(f"[{fg} underline on {bg}] {sym} [/]")
+                row.append(f" [{fg} bold underline]{sym}[/]")
 
         row.append(f" |{rank+1}")
         lines.append("".join(row))
 
     # File labels (no background needed, but you can add if you want)
-    lines.append("    ______________________")
-    lines.append("    a  b  c  d  e  f  g  h")
+    lines.append("   _______________")
+    lines.append("   a b c d e f g h")
     return "\n".join(lines)
 
 
