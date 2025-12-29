@@ -33,14 +33,27 @@ class ChessTable():
 
     def get_square_cell(self, file_idx: int, rank_idx: int) -> Text:
         sq = chess.square(file_idx, rank_idx)
-        p = self.board.piece_at(sq)
+            
 
-        p = p if p else " "
+        piece = self.board.piece_at(sq)
+        glyph = piece.symbol() if piece else " "
 
-        light = (file_idx + rank_idx) % 2 == 0
-        base_style = "on magenta black" if light else "on yellow black"
+        style =""
+        white_style = "on blue bold white"
+        black_style = "on magenta bold white"
 
-        return Text(f" {p} ", style=base_style)
+        if piece:
+            style = white_style if piece.color else black_style
+
+        if self.board.move_stack:
+            m = self.board.peek()
+
+            if sq in [m.from_square, m.to_square]:
+                style = "on red3 bold white"
+
+        # light = (file_idx + rank_idx) % 2 == 0
+
+        return Text(f" {glyph} ", style=style)
 
     def get_square_rank(self, rank_idx: int) -> list[Text]:
         files = []
@@ -57,4 +70,8 @@ console = Console()
 
 chess_table = ChessTable(board)
 
+console.print(chess_table.make_table())
+chess_table.board.push_san("e4")
+console.print(chess_table.make_table())
+chess_table.board.push_san("e5")
 console.print(chess_table.make_table())
