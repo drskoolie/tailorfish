@@ -1,10 +1,13 @@
 import chess
 from rich import box
 from rich.console import Console
+from rich.live import Live
+from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-class ChessTable():
+
+class ChessTable:
     def __init__(self, board: chess.Board):
         self.board = board
 
@@ -63,15 +66,87 @@ class ChessTable():
 
         return files
 
+def render(board: chess.Board) -> Panel:
+    table = ChessTable(board).make_table()
+    status = []
+    status.append(f"Turn: {'White' if board.turn else 'Black'}")
+    if board.is_check():
+        status.append("CHECK!")
+    if board.is_checkmate():
+        status.append("CHECKMATE")
+    elif board.is_stalemate():
+        status.append("STALEMATE")
 
-board = chess.Board()
+    help_line = "Enter SAN (e4, Nf3, O-O) or UCI (e2e4). Commands: undo, moves, fen, quit"
+    body = f"[dim]{' | '.join(status)}[/dim]\n[dim]{help_line}[/dim]"
+    return Panel.fit(table, subtitle=body)
 
-console = Console()
 
-chess_table = ChessTable(board)
+def try_push_move(board: chess.Board, s: str) -> None:
+    s = s.strip()
 
-console.print(chess_table.make_table())
-chess_table.board.push_san("e4")
-console.print(chess_table.make_table())
-chess_table.board.push_san("e5")
-console.print(chess_table.make_table())
+    # Try SAN first (what humans usually type)
+    try:
+        board.push_san(s)
+        return
+    except ValueError:
+        pass
+
+    # Then try UCI (e2e4, g1f3, etc.)
+    try:
+        mv = chess.Move.from_uci(s)
+        if mv in board.legal_moves:
+            board.push(mv)
+            return
+    except ValueError:
+        pass
+
+    raise ValueError("Invalid move (not legal SAN or UCI).")
+
+
+def main() -> None:
+    console = Console()
+    board = chess.Board()
+
+    with Live(render(board), console=console, refresh_per_second=1, screen=False) as live:
+        while True:
+            # refresh after each action (and after move input)
+            live.update(render(board))
+
+            try:
+                s = console.input("[bold cyan]move>[/] ").strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+
+            if not s:
+                continue
+
+            cmd = s.lower()
+            if cmd in {"q", "quit", "exit"}:
+                break
+            if cmd == "undo":
+                if board.move_stack:
+                    board.pop()
+                continue
+            if cmd == "fen":
+                console.print(board.fen())
+                continue
+            if cmd == "moves":
+                console.print(list(board.legal_moves))
+                continue
+
+            try:
+                try_push_move(board, s)
+            except ValueError as e:
+                console.print(f"[bold red]{e}[/]")
+
+            # stop if game over (optional)
+            if board.is_game_over():
+                live.update(render(board))
+                console.print(f"[bold yellow]Game over:[/] {board.result()} ({board.outcome()})")
+                break
+
+
+if __name__ == "__main__":
+    main()
+
